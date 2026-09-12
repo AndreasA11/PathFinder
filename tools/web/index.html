@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathfinder Visualizer</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --node-bg: #0284c7;
+            --node-root: #10b981;
+            --node-text: #ffffff;
+            --link-color: #64748b;
+            --success-color: #22c55e;
+            --error-color: #ef4444;
+            --code-bg: #0b1120;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--error-color);
+            transition: background-color 0.3s;
+        }
+
+        .status-dot.online {
+            background-color: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.15rem;
+            margin-bottom: 14px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            font-family: monospace;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        button {
+            padding: 8px 14px;
+            background-color: var(--border-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #475569;
+        }
+
+        button.primary {
+            background-color: var(--accent-color);
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        button.primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .action-buttons button {
+            padding: 12px;
+            font-size: 0.95rem;
+        }
+
+        .array-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            min-height: 48px;
+            align-items: center;
+        }
+
+        .array-item {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 44px;
+        }
+
+        .array-item .idx {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .array-item .val {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .array-item.root .val {
+            color: var(--node-root);
+        }
+
+        .tree-container {
+            width: 100%;
+            height: 380px;
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: auto;
+            position: relative;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            min-width: 500px;
+            min-height: 360px;
+        }
+
+        .log-box {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-height: 220px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: #34d399;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .log-entry.sent {
+            color: #60a5fa;
+        }
+
+        .log-entry.recv {
+            color: #34d399;
+        }
+
+        .log-entry.err {
+            color: #f87171;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--border-color);
+            color: var(--text-muted);
+        }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab-button { padding: 10px 18px; }
+        .tab-button.active { background: var(--accent-color); color: #0f172a; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .planner-layout { display: grid; grid-template-columns: 280px 1fr; gap: 24px; }
+        .planner-controls input { width: 100%; }
+        .mode-button.active { background: var(--success-color); color: #072b1a; }
+        .map-grid { display: grid; gap: 2px; background: var(--border-color); padding: 2px; border-radius: 8px; max-width: 720px; aspect-ratio: 1.35; }
+        .map-cell { border: 0; border-radius: 0; min-width: 0; padding: 0; background: #dbeafe; color: #0f172a; font-size: 10px; }
+        .map-cell:hover { filter: brightness(.9); }
+        .map-cell.obstacle { background: #334155; }
+        .map-cell.start { background: #22c55e; }
+        .map-cell.goal { background: #f97316; }
+        .map-cell.path { background: #38bdf8; }
+        .legend { display: flex; gap: 12px; flex-wrap: wrap; color: var(--text-muted); font-size: .8rem; margin: 12px 0; }
+        .legend i { width: 12px; height: 12px; display: inline-block; border-radius: 2px; margin-right: 4px; vertical-align: -2px; }
+        @media (max-width: 900px) { .planner-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>
+            <span>A* Pathfinder</span>
+            <span class="badge">Pathfinder & Heap Services</span>
+        </h1>
+        <div class="status-badge">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="statusText">Checking Gateway...</span>
+            <button onclick="checkConnection()" style="padding: 2px 8px; font-size: 0.75rem;">Retry</button>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-button active" data-tab="planner" onclick="selectTab('planner')">Pathfinder</button>
+        <button class="tab-button" data-tab="heap" onclick="selectTab('heap')">Heap Services</button>
+    </div>
+
+    <section id="planner-tab" class="tab-panel active">
+        <div class="planner-layout">
+            <div class="planner-controls">
+                <div class="card">
+                    <h2>Map Setup</h2>
+                    <label>Columns × Rows</label>
+                    <div class="btn-row"><input id="mapWidth" type="text" value="12"><input id="mapHeight" type="text" value="9"></div>
+                    <label>Resolution</label><input id="mapResolution" type="text" value="0.5">
+                    <label>Origin X / Y</label>
+                    <div class="btn-row"><input id="mapOriginX" type="text" value="-3"><input id="mapOriginY" type="text" value="-2.25"></div>
+                    <div class="btn-row"><button onclick="resetPlannerMap()">New empty map</button><button onclick="clearObstacles()">Clear obstacles</button></div>
+                    <button class="primary" onclick="publishPlannerMap()">Publish /map</button>
+                </div>
+                <div class="card">
+                    <h2>Edit mode</h2>
+                    <div class="btn-row">
+                        <button class="mode-button active" data-mode="obstacle" onclick="setEditMode('obstacle')">Obstacle</button>
+                        <button class="mode-button" data-mode="start" onclick="setEditMode('start')">Start</button>
+                        <button class="mode-button" data-mode="goal" onclick="setEditMode('goal')">Goal</button>
+                    </div>
+                    <p id="plannerStatus" style="color: var(--text-muted); font-size: .85rem;">Click cells to add or remove obstacles.</p>
+                    <div class="action-buttons"><button onclick="publishPlannerMap()">Publish map</button><button class="primary" onclick="planPath()">Plan path</button></div>
+                </div>
+            </div>
+            <div class="card">
+                <h2><span>Interactive Occupancy Grid</span><span id="pathStatus" class="badge">Map not published</span></h2>
+                <div class="legend"><span><i style="background:#dbeafe"></i>Free</span><span><i style="background:#334155"></i>Obstacle</span><span><i style="background:#22c55e"></i>Start</span><span><i style="background:#f97316"></i>Goal</span><span><i style="background:#38bdf8"></i>Path</span></div>
+                <div id="mapGrid" class="map-grid" aria-label="Pathfinder occupancy grid"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="heap-tab" class="tab-panel ">
+    <div class="main-grid">
+        <!-- Controls Column -->
+        <div>
+            <div class="card">
+                <h2>Heap Service Request</h2>
+                <label for="numbersInput">Numeric Array (comma-separated):</label>
+                <input type="text" id="numbersInput" value="3.0, 1.0, 2.0, 8.5, 4.2, 0.5, 7.1" />
+
+                <label>Presets:</label>
+                <div class="btn-row">
+                    <button onclick="setPreset('3.0, 1.0, 2.0')">[3, 1, 2]</button>
+                    <button onclick="setPreset('9, 3, 7, 1, 8, 2, 5, 0, 6')">Unsorted 9</button>
+                    <button onclick="setPreset('-5.5, 10.2, 0.0, -5.5, 3.14, -100.0')">Floats & Negatives</button>
+                    <button onclick="generateRandom()">Random 10</button>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="primary" onclick="callHeapify()">
+                        Call /heapify
+                    </button>
+                    <button class="primary" onclick="callHeapSort()">
+                        Call /heap_sort
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>
+                    <span>Heap Sort Result</span>
+                    <span id="sortStatus" class="badge">Awaiting call</span>
+                </h2>
+                <div id="sortArrayView" class="array-container">
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">Click "Call /heap_sort" to sort.</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>
+                    <span>Protocol RPC Inspector</span>
+                    <button onclick="clearLogs()" style="padding: 2px 8px; font-size: 0.75rem;">Clear</button>
+                </h2>
+                <div id="logBox" class="log-box"></div>
+            </div>
+        </div>
+
+        <!-- Visualization Column -->
+        <div>
+            <div class="card">
+                <h2>
+                    <span>Min-Heap Tree Visualization</span>
+                    <span id="heapInvariantBadge" class="badge">Ready</span>
+                </h2>
+                <div class="tree-container">
+                    <svg id="treeSvg"></svg>
+                </div>
+
+                <h3 style="font-size: 0.95rem; margin-top: 16px; margin-bottom: 8px; color: var(--text-muted);">
+                    Heap Array View (<span id="heapCount">0</span> elements):
+                </h3>
+                <div id="heapArrayView" class="array-container">
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">No heap loaded. Click "Call /heapify".</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    </section>
+
+    
+
+    <script>
+        let requestId = 1;
+        let isOnline = false;
+
+        function log(msg, type = "recv") {
+            const box = document.getElementById("logBox");
+            const entry = document.createElement("div");
+            entry.className = "log-entry " + type;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${msg}`;
+            box.appendChild(entry);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById("logBox").innerHTML = "";
+        }
+
+        async function checkConnection() {
+            const dot = document.getElementById("statusDot");
+            const txt = document.getElementById("statusText");
+            txt.textContent = "Checking...";
+            try {
+                const res = await fetch("/api/status");
+                const data = await res.json();
+                if (data.online) {
+                    dot.className = "status-dot online";
+                    txt.textContent = "Gateway Online (127.0.0.1:9095)";
+                    isOnline = true;
+                } else {
+                    dot.className = "status-dot";
+                    txt.textContent = "Gateway Offline";
+                    isOnline = false;
+                }
+            } catch (err) {
+                dot.className = "status-dot";
+                txt.textContent = "Bridge Offline";
+                isOnline = false;
+            }
+        }
+
+        function parseInputNumbers() {
+            const raw = document.getElementById("numbersInput").value.trim();
+            if (!raw) return [];
+            return raw.split(",")
+                      .map(s => parseFloat(s.trim()))
+                      .filter(n => !isNaN(n) && isFinite(n));
+        }
+
+        function setPreset(val) {
+            document.getElementById("numbersInput").value = val;
+        }
+
+        function generateRandom() {
+            const arr = [];
+            for (let i = 0; i < 10; ++i) {
+                arr.push(Math.floor(Math.random() * 99) + 1);
+            }
+            setPreset(arr.join(", "));
+        }
+
+        async function sendRpc(message) {
+            log("-> " + JSON.stringify(message), "sent");
+            try {
+                const res = await fetch("/api/rosbridge", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(message)
+                });
+                const data = await res.json();
+                log("<- " + JSON.stringify(data), "recv");
+                return data;
+            } catch (err) {
+                log("!! Request failed: " + err.message, "err");
+                return null;
+            }
+        }
+
+        async function callHeapify() {
+            const numbers = parseInputNumbers();
+            const callId = "heapify_call_" + (requestId++);
+            const req = {
+                op: "call_service",
+                service: "/heapify",
+                args: { values: numbers },
+                id: callId
+            };
+
+            const resp = await sendRpc(req);
+            if (resp && resp.result && resp.values && resp.values.heap) {
+                renderHeap(resp.values.heap);
+            }
+        }
+
+        async function callHeapSort() {
+            const numbers = parseInputNumbers();
+            const callId = "heapsort_call_" + (requestId++);
+            const req = {
+                op: "call_service",
+                service: "/heap_sort",
+                args: { numbers: numbers },
+                id: callId
+            };
+
+            const resp = await sendRpc(req);
+            if (resp && resp.result && resp.values && resp.values.sorted) {
+                renderSortResult(resp.values.sorted);
+            }
+        }
+
+        function renderSortResult(sortedArr) {
+            const container = document.getElementById("sortArrayView");
+            container.innerHTML = "";
+            document.getElementById("sortStatus").textContent = `Sorted (${sortedArr.length} items)`;
+
+            if (sortedArr.length === 0) {
+                container.innerHTML = '<span style="color: var(--text-muted);">Empty result.</span>';
+                return;
+            }
+
+            sortedArr.forEach((val, idx) => {
+                const el = document.createElement("div");
+                el.className = "array-item";
+                el.innerHTML = `<span class="idx">${idx}</span><span class="val">${val}</span>`;
+                container.appendChild(el);
+            });
+        }
+
+        function renderHeap(heapArr) {
+            document.getElementById("heapCount").textContent = heapArr.length;
+            const container = document.getElementById("heapArrayView");
+            container.innerHTML = "";
+
+            if (heapArr.length === 0) {
+                container.innerHTML = '<span style="color: var(--text-muted);">Empty heap.</span>';
+                drawTree([]);
+                return;
+            }
+
+            let invariantHolds = true;
+            for (let i = 0; i < heapArr.length; ++i) {
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
+                if (left < heapArr.length && heapArr[left] < heapArr[i]) invariantHolds = false;
+                if (right < heapArr.length && heapArr[right] < heapArr[i]) invariantHolds = false;
+            }
+
+            const badge = document.getElementById("heapInvariantBadge");
+            if (invariantHolds) {
+                badge.textContent = "Invariant: Valid Min-Heap";
+                badge.style.color = "var(--success-color)";
+            } else {
+                badge.textContent = "Invariant: VIOLATED";
+                badge.style.color = "var(--error-color)";
+            }
+
+            heapArr.forEach((val, idx) => {
+                const el = document.createElement("div");
+                el.className = "array-item" + (idx === 0 ? " root" : "");
+                el.innerHTML = `<span class="idx">${idx}</span><span class="val">${val}</span>`;
+                container.appendChild(el);
+            });
+
+            drawTree(heapArr);
+        }
+
+        function drawTree(heap) {
+            const svg = document.getElementById("treeSvg");
+            svg.innerHTML = "";
+            if (!heap || heap.length === 0) return;
+
+            const width = Math.max(svg.clientWidth || 500, 500);
+            const height = Math.max(svg.clientHeight || 360, 360);
+
+            // Compute depth
+            const n = heap.length;
+            const depth = Math.floor(Math.log2(n)) + 1;
+            const levelHeight = Math.min(65, (height - 60) / depth);
+
+            // Node coordinates
+            const coords = [];
+            for (let i = 0; i < n; ++i) {
+                const level = Math.floor(Math.log2(i + 1));
+                const levelIndex = (i + 1) - Math.pow(2, level);
+                const countAtLevel = Math.pow(2, level);
+                const stepX = width / (countAtLevel + 1);
+                const x = stepX * (levelIndex + 1);
+                const y = 40 + level * levelHeight;
+                coords.push({ x, y });
+            }
+
+            // Draw link lines
+            for (let i = 0; i < n; ++i) {
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
+                if (left < n) {
+                    drawLine(svg, coords[i].x, coords[i].y, coords[left].x, coords[left].y);
+                }
+                if (right < n) {
+                    drawLine(svg, coords[i].x, coords[i].y, coords[right].x, coords[right].y);
+                }
+            }
+
+            // Draw node circles & text
+            for (let i = 0; i < n; ++i) {
+                drawNode(svg, coords[i].x, coords[i].y, heap[i], i === 0);
+            }
+        }
+
+        function drawLine(svg, x1, y1, x2, y2) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "var(--link-color)");
+            line.setAttribute("stroke-width", "2");
+            svg.appendChild(line);
+        }
+
+        function drawNode(svg, x, y, value, isRoot) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", x);
+            circle.setAttribute("cy", y);
+            circle.setAttribute("r", 18);
+            circle.setAttribute("fill", isRoot ? "var(--node-root)" : "var(--node-bg)");
+            circle.setAttribute("stroke", "#ffffff");
+            circle.setAttribute("stroke-width", "1.5");
+            g.appendChild(circle);
+
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", x);
+            text.setAttribute("y", y + 4);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("fill", "var(--node-text)");
+            text.setAttribute("font-size", "11");
+            text.setAttribute("font-weight", "bold");
+            text.textContent = value;
+            g.appendChild(text);
+
+            svg.appendChild(g);
+        }
+
+        let planner = { width: 12, height: 9, resolution: .5, ox: -3, oy: -2.25, cells: [], start: { x: 0, y: 0 }, goal: { x: 11, y: 8 }, mode: "obstacle", path: [] };
+        function selectTab(name) { document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === name + "-tab")); document.querySelectorAll(".tab-button").forEach(b => b.classList.toggle("active", b.dataset.tab === name)); if (name === "planner") renderPlannerGrid(); }
+        function mapValues() { return { width: parseInt(mapWidth.value,10), height: parseInt(mapHeight.value,10), resolution: parseFloat(mapResolution.value), ox: parseFloat(mapOriginX.value), oy: parseFloat(mapOriginY.value) }; }
+        function setPlannerStatus(text,error=false) { pathStatus.textContent=text;pathStatus.style.color=error?"var(--error-color)":"var(--text-muted)"; }
+        function setEditMode(mode) { planner.mode=mode;document.querySelectorAll(".mode-button").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));plannerStatus.textContent={obstacle:"Click cells to toggle obstacles.",start:"Click a free cell to set start.",goal:"Click a free cell to set goal."}[mode]; }
+        function resetPlannerMap() { const n=mapValues();if(!Number.isInteger(n.width)||!Number.isInteger(n.height)||n.width<2||n.height<2||!Number.isFinite(n.resolution)||n.resolution<=0||!Number.isFinite(n.ox)||!Number.isFinite(n.oy)){setPlannerStatus("Enter valid dimensions and metadata.",true);return;}planner={...n,cells:Array(n.width*n.height).fill(0),start:{x:0,y:0},goal:{x:n.width-1,y:n.height-1},mode:"obstacle",path:[]};setEditMode("obstacle");setPlannerStatus("Map ready. Publish it before planning.");renderPlannerGrid(); }
+        function clearObstacles() { planner.cells.fill(0);planner.path=[];setPlannerStatus("Obstacles cleared. Publish the updated map.");renderPlannerGrid(); }
+        function clickMapCell(x,y) { const i=y*planner.width+x;planner.path=[];if(planner.mode==="obstacle"){if((x===planner.start.x&&y===planner.start.y)||(x===planner.goal.x&&y===planner.goal.y))return;planner.cells[i]=planner.cells[i]>=50?0:100;}else if(planner.mode==="start"&&planner.cells[i]<50)planner.start={x,y};else if(planner.mode==="goal"&&planner.cells[i]<50)planner.goal={x,y};setPlannerStatus("Map changed. Publish the updated map.");renderPlannerGrid(); }
+        function renderPlannerGrid() { const grid=document.getElementById("mapGrid");if(!grid)return;grid.innerHTML="";grid.style.gridTemplateColumns="repeat("+planner.width+", minmax(0, 1fr))";const path=new Set(planner.path.map(c=>c.y*planner.width+c.x));for(let y=0;y<planner.height;y++)for(let x=0;x<planner.width;x++){const i=y*planner.width+x,b=document.createElement("button");b.className="map-cell";if(planner.cells[i]>=50||planner.cells[i]<0)b.classList.add("obstacle");if(path.has(i))b.classList.add("path");if(x===planner.start.x&&y===planner.start.y)b.classList.add("start");if(x===planner.goal.x&&y===planner.goal.y)b.classList.add("goal");b.title="Cell ("+x+", "+y+")";b.onclick=()=>clickMapCell(x,y);grid.appendChild(b);} }
+        function plannerMapPayload() { return {header:{frame_id:"map"},info:{resolution:planner.resolution,width:planner.width,height:planner.height,origin:{position:{x:planner.ox,y:planner.oy,z:0},orientation:{x:0,y:0,z:0,w:1}}},data:planner.cells}; }
+        async function publishPlannerMap() { const r=await sendRpc({op:"publish",topic:"/map",msg:plannerMapPayload()});setPlannerStatus(r&&r.result?"Map published to /map.":"Could not publish map. Is the gateway running?",!(r&&r.result));return r; }
+        async function planPath() { if(!await publishPlannerMap())return;const center=c=>({x:planner.ox+(c.x+.5)*planner.resolution,y:planner.oy+(c.y+.5)*planner.resolution}),s=center(planner.start),g=center(planner.goal),pose=p=>({header:{frame_id:"map"},pose:{position:{x:p.x,y:p.y,z:0},orientation:{x:0,y:0,z:0,w:1}}});const r=await sendRpc({op:"call_service",service:"/plan_path",id:"plan_"+(requestId++),args:{start:pose(s),goal:pose(g),tolerance:0}});if(!r||!r.result||!r.values||!r.values.plan){planner.path=[];renderPlannerGrid();setPlannerStatus("No path found.",true);return;}planner.path=r.values.plan.poses.map(v=>({x:Math.floor((v.pose.position.x-planner.ox)/planner.resolution),y:Math.floor((v.pose.position.y-planner.oy)/planner.resolution)}));renderPlannerGrid();setPlannerStatus("Path found: "+Math.max(0,planner.path.length-1)+" moves."); }
+
+        // Initialize
+        checkConnection();
+        setInterval(checkConnection, 5000);
+        // Initial render with default preset
+        callHeapify();
+        resetPlannerMap();
+    </script>
+</body>
+</html>

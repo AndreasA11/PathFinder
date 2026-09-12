@@ -38,7 +38,6 @@ Work from the repository and persistent artifacts rather than relying on prior c
 - Prefer fixing root causes over adding workarounds.
 - Preserve existing public behavior unless the specification requires a change.
 - Use C++ for implementations
-- Add comments for logic/reason of lines of code 
 - Add comments starting with "*CHANGES*" for any changes made to existing code and state reasons for changes
 
 

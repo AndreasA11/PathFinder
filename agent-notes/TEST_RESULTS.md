@@ -1,87 +1,109 @@
-# Test Results: Binary Min-Heap Primitive
+# Test Results: Map Production and /map Publication
 
 ## Summary
-All 10 acceptance criteria defined in `promts/Task_ Binary Min-Heap Primitive.md` have been verified. All test suites compiled cleanly under C++20 with `-Wall -Wextra -Wpedantic` and passed without failures.
 
-## Test Environment
-- Compiler: Apple clang / g++ supporting `-std=c++20`
-- Compilation flags: `-std=c++20 -Wall -Wextra -Wpedantic -Iinclude`
-- Test command: `make test`
+The focused map-producer test suite passed. Both runtime binaries compile with
+the new map component. The pre-existing TCP middleware regression suite could
+not run because its fixed local port 127.0.0.1:9095 was unavailable in this
+environment; this is recorded as an environment gap, not a map defect.
 
-## Tests Performed
+## Test environment
 
-### 1. Empty Heap Handling
-- **Requirement/Risk**: Creating an empty heap; calling `getMin()` or `extractMin()` on empty heap.
-- **Method**: Instantiated empty `MinHeap<double>`, queried `isEmpty()`, `empty()`, `size()`, called `getMin()` and `extractMin()` in try/catch blocks, verified empty input to `heapSort`.
-- **Expected Behavior**: Size is 0; `getMin()` and `extractMin()` throw `std::underflow_error`; empty input to `heapSort` returns empty vector.
-- **Observed Behavior**: Exceptions caught as expected; size and vectors empty.
-- **Result**: PASS
+- Compiler command: c++ -std=c++20 -Wall -Wextra -Wpedantic -Iinclude
+- Focused command: make test_map
+- Build commands: make build, make hub
 
-### 2. Singleton Heap Handling
-- **Requirement/Risk**: Singleton input handling and edge cases when heap transitions between 1 and 0 elements.
-- **Method**: Instantiated `MinHeap<double>({42.5})`, checked root, extracted minimum, verified empty afterward; tested single-element `heapSort({-17.2})`.
-- **Expected Behavior**: Root element is returned; heap empties cleanly without attempting invalid sifts; sorted output matches single element.
-- **Observed Behavior**: All assertions hold.
-- **Result**: PASS
+## Tests performed
 
-### 3. Heapify from Arbitrary Array & Multiset Preservation
-- **Requirement/Risk**: Bottom-up construction from arbitrary vector; multiset preservation; invariant satisfaction.
-- **Method**: Initialized `MinHeap` with `{9.0, 3.5, 7.2, 1.1, 8.4, 2.0, 5.5, 0.5, 6.3}`. Verified min-heap invariant for all parent-child pairs. Compared sorted inputs and sorted heap elements.
-- **Expected Behavior**: Min-heap invariant holds for all indices; root is minimum (0.5); multiset identical to input.
-- **Observed Behavior**: Invariant holds; multiset preserved.
-- **Result**: PASS
+### Default-map validity
 
-### 4. Insertion Preserves Invariant
-- **Requirement/Risk**: Successive insertions maintain min-heap invariant at each step.
-- **Method**: Successively inserted unsorted integers `{10, 4, 15, 20, 0, 8, -5, 3}` into an initially empty heap, verifying invariant after each insertion.
-- **Expected Behavior**: Invariant maintained after every insert; root holds minimum (-5).
-- **Observed Behavior**: Invariant held across all steps.
-- **Result**: PASS
+- **Requirement/risk:** positive dimensions and resolution, nonzero metadata,
+  exact cell count, free/blocked occupancy semantics, and at least two
+  4-connected free cells.
+- **Method:** Constructed make_default_map() and inspected its definition.
+- **Expected behavior:** a valid map with at least one horizontally or
+  vertically adjacent pair of free cells.
+- **Observed behavior:** the map has 4 x 3 cells, 0.5 resolution, origin
+  (-1, 2), valid data length, and qualifying free cells.
+- **Result:** pass.
 
-### 5. Extract-Min Order & Invariant Preservation
-- **Requirement/Risk**: Sift-down restores invariant after removal; successive extracts yield nondecreasing sequence.
-- **Method**: Inserted array with positive, negative, fractional numbers and duplicates. Repeatedly extracted min until empty, verifying invariant after each extraction.
-- **Expected Behavior**: Each extracted element is $\le$ the next; invariant preserved after every extract; multiset matches input.
-- **Observed Behavior**: Nondecreasing order verified; invariant satisfied at all intermediate states.
-- **Result**: PASS
+### JSON schema and metadata preservation
 
-### 6. Heap Sort
-- **Requirement/Risk**: Arbitrary numeric input produces ascending sequence via heap operations alone without general-purpose sort.
-- **Method**: Called `MinHeap::heapSort` on `[3.0, 1.0, 2.0]` and mixed vectors with negative, fractional, duplicate, and all-equal values.
-- **Expected Behavior**: Returns `[1.0, 2.0, 3.0]`, handles mixed values and identical values correctly.
-- **Observed Behavior**: Exactly matched expected output.
-- **Result**: PASS
+- **Requirement/risk:** required fields, identity orientation, arbitrary valid
+  metadata, and row-major data preservation.
+- **Method:** Serialized a custom 3 x 2 map with non-default frame,
+  resolution, origin, and occupancy values.
+- **Expected behavior:** serialized JSON preserves metadata and maps
+  data[y * width + x] directly to the supplied array element.
+- **Observed behavior:** all required nested fields and orientation values were
+  present; each data value retained its index.
+- **Result:** pass.
 
-### 7. Duplicates and All-Equal Values
-- **Requirement/Risk**: Duplicates are not lost; all-equal values do not cause infinite loops or corruptions.
-- **Method**: Passed `{5, 5, 2, 2, 8, 8, 2}` and `{7, 7, 7, 7, 7}` through heap construction and sorting.
-- **Expected Behavior**: All duplicate instances preserved.
-- **Observed Behavior**: Multiset counts identical; sorting exact.
-- **Result**: PASS
+### Invalid definitions
 
-### 8. decreaseKey Operation
-- **Requirement/Risk**: Decreasing a key properly sifts up; invalid index and key increase handled.
-- **Method**: Decreased value at leaf from 50 to 5, checked root becomes 5; tested out-of-range index and invalid increase.
-- **Expected Behavior**: Min-heap invariant restored; `std::out_of_range` on bad index; `std::invalid_argument` on key increase.
-- **Observed Behavior**: Proper exceptions thrown and caught; invariant maintained.
-- **Result**: PASS
+- **Requirement/risk:** malformed generated maps must not be published.
+- **Method:** Tested zero width, zero resolution, infinite origin, short data,
+  and overflowing dimensions.
+- **Expected behavior:** validation rejects each case and serialization throws.
+- **Observed behavior:** every malformed definition was rejected.
+- **Result:** pass.
 
-### 9. deleteKey Operation
-- **Requirement/Risk**: Deleting root, interior element, last element, or non-existent key.
-- **Method**: Executed deletions for middle element (12), root, and last element in array; attempted deletion of missing key.
-- **Expected Behavior**: Invariant maintained after each delete; size decremented; missing key throws `std::runtime_error`; last element deleted without out-of-bounds sift.
-- **Observed Behavior**: All cases passed cleanly.
-- **Result**: PASS
+### Generic middleware publication
 
-### 10. Backward Compatibility Alias
-- **Requirement/Risk**: Existing references to `BinaryHeap<T>` remain functional.
-- **Method**: Constructed and operated on `BinaryHeap<double>`.
-- **Expected Behavior**: Behaves identically to `MinHeap<double>`.
-- **Observed Behavior**: Verified identical behavior.
-- **Result**: PASS
+- **Requirement/risk:** the producer must publish a map without embedding
+  application behavior in middleware.
+- **Method:** Subscribed to /map on a fresh Middleware instance, then called
+  publish_map with independent metadata.
+- **Expected behavior:** exactly one normal topic message reaches the
+  subscriber with unchanged metadata and cell data.
+- **Observed behavior:** one message was delivered and preserved the custom
+  frame, resolution, origin, and occupancy entries.
+- **Result:** pass.
+
+### Build verification
+
+- **Requirement/risk:** normal application and hub entry points integrate the
+  component.
+- **Method:** Ran make build and make hub.
+- **Expected behavior:** warning-clean compilation.
+- **Observed behavior:** both completed successfully.
+- **Result:** pass.
 
 ## Failures
-None.
 
-## Remaining Gaps
-None. All requirements specified in `promts/Task_ Binary Min-Heap Primitive.md` are satisfied and verified.
+No map-production failures observed.
+
+The existing make test_middleware test failed before its first TCP case because
+RosbridgeServer::start() could not bind port 9095. Retrying produced the same
+assertion at tests/test_middleware.cpp:209. The map test does not bind a TCP
+port and passed; the available evidence points to local port availability
+rather than the new map implementation.
+
+## Remaining gaps
+
+The existing fixed-port TCP middleware and heap-service integration tests could
+not be re-run while port 9095 remains unavailable. The focused map component,
+in-process publication, and both production binaries were verified.
+
+---
+
+# A* Planner Verification
+
+## Summary
+
+make test_path_planner passed, as did builds of both runtime entry points.
+
+## Tests performed
+
+- No /map request: /plan_path returned false.
+- Arbitrary 3 x 3 map with nonzero origin and 0.5 resolution: returned a
+  five-pose shortest path around a blocked center, with correct cell centers.
+- Successful request: exactly one matching /path publication was observed.
+- Replacement 2 x 2 map: later request used replacement metadata and rejected
+  unreachable cells without republishing the prior path.
+- Start equals goal: returned one pose and published it.
+
+## Remaining gaps
+
+Existing fixed-port TCP tests remain unavailable because port 9095 is occupied
+in this environment. Direct middleware service and topic integration passed.

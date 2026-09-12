@@ -3,15 +3,11 @@
 
 #include <iostream>
 #include <vector>
-// *CHANGES*: Included <stdexcept> for std::runtime_error, std::underflow_error, std::invalid_argument, and std::out_of_range.
 #include <stdexcept>
-// *CHANGES*: Included <utility> for std::swap.
 #include <utility>
-// *CHANGES*: Included <cstddef> for size_t.
 #include <cstddef>
 #include <initializer_list>
 
-// *CHANGES*: Renamed class from BinaryHeap to MinHeap to match prompt specification (promts/Task_ Binary Min-Heap Primitive.md).
 // Provided a template alias 'BinaryHeap' below for backward compatibility.
 template <typename T>
 class MinHeap {
@@ -20,22 +16,38 @@ class MinHeap {
         // *CHANGES*: Initialized currentSize to 0. Maintained for compatibility, although heap.size() is primary.
         int currentSize{0};
 
+        // ==========================================
         // Helper functions
+        // ==========================================
+
+        /*
+        1. For an element at index i, compute its parent index using integer division: (i - 1) / 2.
+        2. Return the calculated parent index.
+        */
         // *CHANGES*: Changed index parameters from int to size_t to prevent signed/unsigned comparison warnings
         // and ensure memory safety with large vectors.
-
-        // Returns parent index for a given node index
         static constexpr size_t parent(size_t index) noexcept {
+            // Associated with Step 1 & 2: Calculate and return parent index
             return (index - 1) / 2;
         }
 
-        // Returns left child index (2*i + 1)
+        /*
+        1. For an element at index i, compute its left child index as: 2 * i + 1.
+        2. Return the calculated left child index.
+        */
+        // *CHANGES*: Changed index parameter from int to size_t.
         static constexpr size_t leftChild(size_t index) noexcept {
+            // Associated with Step 1 & 2: Calculate and return left child index
             return (index * 2) + 1;
         }
 
-        // Returns right child index (2*i + 2)
+        /*
+        1. For an element at index i, compute its right child index as: 2 * i + 2.
+        2. Return the calculated right child index.
+        */
+        // *CHANGES*: Changed index parameter from int to size_t.
         static constexpr size_t rightChild(size_t index) noexcept {
+            // Associated with Step 1 & 2: Calculate and return right child index
             return (index * 2) + 2;
         }
 
@@ -46,10 +58,15 @@ class MinHeap {
         4. Continue this process until the heap property is restored.
         */
         void heapifyUp(size_t index) {
+            // Associated with Step 1: Check loop condition: index is not root (index > 0)
+            // and key at index i is less than its parent's key.
             // *CHANGES*: Condition updated to 'index > 0' instead of 'index' to be explicit and safe with unsigned size_t.
             while (index > 0 && heap[index] < heap[parent(index)]) {
+                // Associated with Step 2: Swap the key with its parent
                 std::swap(heap[index], heap[parent(index)]);
+                // Associated with Step 3: Update i to the parent index
                 index = parent(index);
+                // Associated with Step 4: Continue loop until condition in Step 1 becomes false
             }
         }
 
@@ -68,19 +85,27 @@ class MinHeap {
                 return;
             }
 
+            // Associated with Step 2: Calculate the left child index as 2i+1
             size_t left = leftChild(index);
+            // Associated with Step 3: Calculate the right child index as 2i+2
             size_t right = rightChild(index);
+            // Associated with Step 1: Initialize the smallest node as the current node, i
             size_t smallest = index;
 
+            // Associated with Step 4: If left child exists and is less than current smallest, update smallest
             // *CHANGES*: Use size_t comparisons to eliminate compiler warnings.
             if (left < heap.size() && heap[left] < heap[smallest]) {
                 smallest = left;
             } 
+            // Associated with Step 5: If right child exists and is less than current smallest, update smallest
             if (right < heap.size() && heap[right] < heap[smallest]) {
                 smallest = right;
             }
+            // Associated with Step 6 & 7: If smallest node is not current node i, swap and recursively heapify
             if (smallest != index) {
+                // Associated with Step 6: Swap current node with smallest node using std::swap
                 std::swap(heap[index], heap[smallest]);
+                // Associated with Step 7: Recursively apply heapify operation to subtree rooted at smallest node
                 heapifyDown(smallest);
             }
         }
@@ -90,17 +115,34 @@ class MinHeap {
         // Constructors
         // ==========================================
 
+        /*
+        1. Initialize backing storage vector to empty.
+        2. Initialize currentSize counter to 0.
+        */
         // *CHANGES*: Explicit default constructor initializing an empty heap.
-        MinHeap() : heap(), currentSize(0) {}
+        MinHeap() : heap(), currentSize(0) {
+        }
 
+        /*
+        1. Copy the input vector into the internal backing container.
+        2. Initialize currentSize to the number of elements in the vector.
+        3. Call bottom-up heapify() to transform the container into a valid min-heap in O(n) time.
+        */
         // *CHANGES*: Added constructor to build heap from an arbitrary vector in O(n) time using bottom-up heapify.
         // Required by Task_ Binary Min-Heap Primitive.md.
         explicit MinHeap(const std::vector<T>& values) : heap(values), currentSize(static_cast<int>(values.size())) {
             heapify();
         }
 
+        /*
+        1. Initialize internal container with the initializer list elements.
+        2. Initialize currentSize to the size of the initializer list.
+        3. Call bottom-up heapify() to transform into a valid min-heap in O(n) time.
+        */
         // *CHANGES*: Added initializer list constructor for convenient instantiation (e.g. MinHeap<int> h = {3, 1, 2}).
         MinHeap(std::initializer_list<T> init) : heap(init), currentSize(static_cast<int>(init.size())) {
+            // Associated with Step 1 & 2: Copy initializer list into heap and set currentSize
+            // Associated with Step 3: Transform into a valid binary min-heap
             heapify();
         }
 
@@ -108,60 +150,88 @@ class MinHeap {
         // Public interface functions
         // ==========================================
 
+        /*
+        1. Query the size of the underlying container.
+        2. Return the number of elements as size_t.
+        */
         // *CHANGES*: Added size() method. This was previously missing, causing a compiler error in deleteKey().
         size_t size() const noexcept {
             return heap.size();
         }
 
+        /*
+        1. Check whether the underlying container contains 0 elements.
+        2. Return true if empty, false otherwise.
+        */
         // Checks if the heap is empty
         // *CHANGES*: Marked const noexcept.
         bool isEmpty() const noexcept {
             return heap.empty();
         }
 
+        /*
+        1. STL-standard method to check whether the heap is empty.
+        2. Return true if empty, false otherwise.
+        */
         // *CHANGES*: Added STL-idiomatic empty() method.
         bool empty() const noexcept {
             return heap.empty();
         }
 
-        // *CHANGES*: Added data() and toVector() methods to inspect and export the heap as an array/vector,
-        // directly satisfying the requirement: "inspecting/exporting the heap contents as an array".
+        /*
+        1. Provide direct read-only access to the underlying vector container.
+        2. Return a const reference to the internal heap vector.
+        */
+        // *CHANGES*: Added data() method to inspect heap contents as an array
+        // as required by Task_ Binary Min-Heap Primitive.md.
         const std::vector<T>& data() const noexcept {
             return heap;
         }
 
+        /*
+        1. Create a copy of the underlying heap array.
+        2. Return the vector copy for external inspection or serialization.
+        */
+        // *CHANGES*: Added toVector() method to export heap contents as an array.
         std::vector<T> toVector() const {
             return heap;
         }
 
+        /*
+        1. Check if the heap has 1 or fewer elements; if so, it already satisfies the heap invariant, so return immediately.
+        2. Identify the index of the last non-leaf parent node: (heap.size() - 2) / 2.
+        3. Iterate backwards from the last parent node down to the root (index 0).
+        4. On each iteration, call heapifyDown on the current node to restore the subtree min-heap invariant.
+        */
         // Transforms arbitrary contents in `heap` into a valid binary min-heap using Floyd's bottom-up algorithm in O(n).
         // *CHANGES*: Implemented heapify() method. It sifts down non-leaf nodes starting from the last parent down to index 0.
         void heapify() {
             if (heap.size() <= 1) {
                 return;
             }
-            // The last parent node is at parent(heap.size() - 1) = (heap.size() - 2) / 2.
-            // Using size_t loop with > 0 guard to avoid underflow.
             for (size_t i = (heap.size() - 2) / 2 + 1; i > 0; --i) {
                 heapifyDown(i - 1);
             }
         }
 
-        // Inserts a new element into the heap
         /*
         1. Append the new key to the end of the array.
         2. Initialize the index i as the index of the newly inserted key (last element of the array).
-        3. Call heapifyUp
+        3. Call heapifyUp on index i to restore the min-heap invariant.
         */
+        // Inserts a new element into the heap
         // *CHANGES*: Passed key by const reference (const T&) to avoid unnecessary object copies.
         void insert(const T& key) {
+            // Associated with Step 1: Append new key to the end of the vector
             heap.push_back(key);
+            // *CHANGES*: Keep currentSize synchronized with container size
             currentSize = static_cast<int>(heap.size());
+            // Associated with Step 2: Initialize index as the newly inserted key's position
             size_t index = heap.size() - 1;
+            // Associated with Step 3: Call heapifyUp on the new element
             heapifyUp(index);
         }
 
-        // Removes and returns the minimum element (min-heap root)
         /*
         1. Check if the heap is empty. If true, throw an underflow_error.
         2. If the heap has only one element, remove and return that element.
@@ -171,6 +241,7 @@ class MinHeap {
         6. Apply the heapify operation on the root to restore the heap property.
         7. Return the stored minimum value.
         */
+        // Removes and returns the minimum element (min-heap root)
         // *CHANGES*:
         // 1. Threw std::underflow_error (with std:: prefix) instead of unqualified runtime_error.
         // 2. Added early return for single-element heap (step 2 in comments) to avoid unnecessary/invalid sift on empty container.
@@ -182,23 +253,25 @@ class MinHeap {
 
             T root = heap.front();
 
-            // Single element case: pop and return directly without sifting down
             if (heap.size() == 1) {
                 heap.pop_back();
                 currentSize = 0;
                 return root;
             }
 
-            // Move last element to root and remove the last position
             heap[0] = heap.back();
             heap.pop_back();
             currentSize = static_cast<int>(heap.size());
 
-            // Restore min-heap invariant from the root
             heapifyDown(0);
+
             return root;
         }
 
+        /*
+        1. Check if the heap is empty. If true, throw an underflow_error.
+        2. Access and return the root element at index 0 (the minimum in a min-heap).
+        */
         // Returns the minimum element without removing it
         // *CHANGES*:
         // 1. Threw std::underflow_error (with std:: prefix) instead of unqualified runtime_error.
@@ -210,16 +283,21 @@ class MinHeap {
             return heap[0];
         }
 
+        /*
+        1. Forward to getMin() to inspect the root minimum element without removing it.
+        */
         // *CHANGES*: Added peek() alias for getMin().
         const T& peek() const {
+            // Associated with Step 1: Forward call to getMin()
             return getMin();
         }
 
         /*
-        1. Check if the index i is valid (within the array bounds). If not, throw an out_of_range exception.
-        2. Replace the key at index i with the last element in the array.
-        3. Remove the last element from the array.
-        4. Apply the heapify operation on the subtree rooted at index i to restore the heap property.
+        1. Search the heap array for the first occurrence of key; if not found, throw runtime_error.
+        2. If the node to delete is already the last element, remove it and return.
+        3. Replace the key at index i with the last element in the array.
+        4. Remove the last element from the array.
+        5. Apply heapifyUp and heapifyDown on index i to restore the heap property.
         */
         // *CHANGES*:
         // 1. Fixed undefined size() call by using heap.size().
@@ -228,7 +306,7 @@ class MinHeap {
         // 4. Properly updated currentSize.
         void deleteKey(const T& key) {
             int index = -1;
-            // Find the index of the node to delete
+            // Associated with Step 1: Find the index of the node to delete
             for (size_t i = 0; i < heap.size(); ++i) {
                 if (heap[i] == key) {
                     index = static_cast<int>(i);
@@ -240,27 +318,26 @@ class MinHeap {
                 throw std::runtime_error("Key not found in the heap");
             }
 
-            // If the element to delete is already the last element, simply pop it
+            // *CHANGES*: Prevents out-of-bounds sift operations when deleting the last element.
             if (static_cast<size_t>(index) == heap.size() - 1) {
                 heap.pop_back();
                 currentSize = static_cast<int>(heap.size());
                 return;
             }
 
-            // Replace node with the last element
             heap[index] = heap.back();
             heap.pop_back();
             currentSize = static_cast<int>(heap.size());
 
-            // Restore heap property: key could need to move up or down
             heapifyUp(static_cast<size_t>(index));
             heapifyDown(static_cast<size_t>(index));
         }
 
         /*
-        1. Check if the index i is valid and the new value is less than the current value. If not, throw an invalid_argument exception.
-        2. Update the value at index i to the new value.
-        3. Call heapifyUp
+        1. Check if the index i is valid (within the array bounds). If not, throw an out_of_range exception.
+        2. Check if the new value is less than or equal to the current value. If not, throw an invalid_argument exception.
+        3. Update the value at index i to the new value.
+        4. Call heapifyUp on index i to restore the min-heap property.
         */
         // *CHANGES*:
         // 1. Changed index type to size_t to prevent signedness warnings.
@@ -277,11 +354,16 @@ class MinHeap {
             heapifyUp(i);
         }
 
+        /*
+        1. Iterate through all elements in the heap array from index 0 to size - 1.
+        2. Print each element to std::cout followed by a newline.
+        */
         // Prints the heap elements
         // *CHANGES*:
         // 1. Fixed syntax error 'for(const &T elt: heap)' to 'for(const T& elt: heap)'.
         // 2. Marked method const.
         void printHeap() const {
+            // Associated with Step 1 & 2: Iterate and print each element
             for (const T& elt : heap) {
                 std::cout << elt << " \n";  
             }
@@ -291,6 +373,12 @@ class MinHeap {
         // Heap-Sort Support
         // ==========================================
 
+        /*
+        1. Construct a min-heap from the input vector using the O(n) heapify constructor.
+        2. Allocate a result vector reserving space for input.size() elements.
+        3. While the heap is not empty, repeatedly call extractMin() and append the minimum element to the result vector.
+        4. Return the resulting vector containing all input elements in ascending order.
+        */
         // *CHANGES*: Implemented heapSort static method as required by Task_ Binary Min-Heap Primitive.md.
         // Transforms the input into a min-heap and repeatedly extracts the minimum to sort in ascending order.
         // Built strictly on heap operations without standard library sorting algorithms.
@@ -304,6 +392,12 @@ class MinHeap {
             return sorted;
         }
 
+        /*
+        1. Make a local copy of the current heap instance so that the operation is non-destructive.
+        2. Allocate a result vector reserving space for copy.size() elements.
+        3. While the copied heap is not empty, repeatedly call extractMin() and append to the result vector.
+        4. Return the resulting sorted vector in ascending order.
+        */
         // *CHANGES*: Added instance sort() method producing an ascending sorted copy of the heap elements.
         std::vector<T> sort() const {
             MinHeap<T> copy = *this;
