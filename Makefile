@@ -35,9 +35,7 @@ test_path_planner: tests/test_path_planner.cpp include/path_planner.hpp include/
 	$(CXX) $(CXXFLAGS) -o build/test_path_planner tests/test_path_planner.cpp
 	./build/test_path_planner
 
-test: test_heap test_middleware test_heap_services test_map test_path_planner
-
-test_challenge:
+test:
 	@python3 tests/run_tests.py $(TESTS)
 
 hub: src/hub.cpp include/heap_services.hpp include/map_producer.hpp include/path_planner.hpp include/middleware/middleware.hpp include/middleware/rosbridge_server.hpp include/middleware/json.hpp
