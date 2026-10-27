@@ -1,7 +1,7 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++20 -Wall -Wextra -Wpedantic -Iinclude
 
-.PHONY: build run map clean test test_heap test_middleware test_heap_services test_map test_path_planner hub rosbridge_server gui
+.PHONY: build run map clean test test_heap test_middleware test_heap_services test_map test_path_planner test_challenge hub rosbridge_server gui
 
 build: src/main.cpp include/map_producer.hpp include/path_planner.hpp
 	mkdir -p build
@@ -36,6 +36,9 @@ test_path_planner: tests/test_path_planner.cpp include/path_planner.hpp include/
 	./build/test_path_planner
 
 test: test_heap test_middleware test_heap_services test_map test_path_planner
+
+test_challenge:
+	@python3 tests/run_tests.py $(TESTS)
 
 hub: src/hub.cpp include/heap_services.hpp include/map_producer.hpp include/path_planner.hpp include/middleware/middleware.hpp include/middleware/rosbridge_server.hpp include/middleware/json.hpp
 	mkdir -p build

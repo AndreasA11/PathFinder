@@ -8,6 +8,7 @@
 #include <thread>
 #include <atomic>
 #include <unordered_map>
+#include <unordered_set>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -24,6 +25,9 @@ private:
         int fd{-1};
         std::shared_ptr<std::mutex> write_mtx{std::make_shared<std::mutex>()};
         std::vector<std::pair<std::string, SubscriptionId>> subscriptions;
+        // Publisher registrations are owned by one TCP connection.  A publish
+        // request is valid only while its topic remains in this set.
+        std::unordered_set<std::string> advertised_topics;
         std::vector<std::string> provided_services;
     };
 
@@ -390,15 +394,25 @@ private:
                 return;
             }
             std::string topic = msg["topic"].as_string();
+            if (conn->advertised_topics.find(topic) == conn->advertised_topics.end()) {
+                send_status(conn, "error", "publish requires an active advertisement for " + topic, req_id);
+                return;
+            }
             mw.publish(topic, msg["msg"]);
 
         // Associated with Step 5: Handle "advertise" & "unadvertise"
         } else if (op == "advertise") {
+            if (msg.contains("topic")) {
+                conn->advertised_topics.insert(msg["topic"].as_string());
+            }
             if (req_id) {
                 std::string topic = msg.contains("topic") ? msg["topic"].as_string() : "";
                 send_status(conn, "info", "advertised " + topic, req_id);
             }
         } else if (op == "unadvertise") {
+            if (msg.contains("topic")) {
+                conn->advertised_topics.erase(msg["topic"].as_string());
+            }
             if (req_id) {
                 std::string topic = msg.contains("topic") ? msg["topic"].as_string() : "";
                 send_status(conn, "info", "unadvertised " + topic, req_id);

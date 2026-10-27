@@ -19,6 +19,14 @@ class MinHeap {
         // ==========================================
         // Helper functions
         // ==========================================
+        
+        /*
+                    4
+            6               5
+        9       12      8       13
+
+        4 6 5 9 12 8 13
+        */
 
         /*
         1. For an element at index i, compute its parent index using integer division: (i - 1) / 2.

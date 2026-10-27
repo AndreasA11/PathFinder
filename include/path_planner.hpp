@@ -69,7 +69,8 @@ inline bool world_cell(const Map& m,double x,double y,Cell& c) {
         b > static_cast<double>(std::numeric_limits<size_t>::max())) {
             return false;
         }
-    c={static_cast<size_t>(a),static_cast<size_t>(b)}; return true;
+    c = {static_cast<size_t>(a), static_cast<size_t>(b)}; 
+    return true;
 }
 
 /* 1. Run A* from free start to free goal.
@@ -117,12 +118,18 @@ std::vector<Cell> astar(const Map& map, Cell start, Cell goal)
 
     // Manhattan distance: only horizontal and vertical movement.
     auto heuristic = [&](Cell cell) {
-        const size_t dx = cell.x > goal.x
-            ? cell.x - goal.x
-            : goal.x - cell.x;
-        const size_t dy = cell.y > goal.y
-            ? cell.y - goal.y
-            : goal.y - cell.y;
+        size_t dx = 0;
+        if(cell.x > goal.x) {
+            dx = cell.x - goal.x;
+        } else {
+            dx = goal.x - cell.x;
+        }
+        size_t dy = 0;
+        if(cell.y > goal.y) {
+            dy = cell.y - goal.y;
+        } else {
+            dy = goal.y - cell.y;
+        }
         return dx + dy;
     };
 
@@ -181,11 +188,7 @@ std::vector<Cell> astar(const Map& map, Cell start, Cell goal)
                 cost[neighbor_id] = new_cost;
                 parent[neighbor_id] = current_id;
                 const size_t priority = new_cost + heuristic(neighbor);
-                open_set.insert({
-                    priority,
-                    new_cost,
-                    neighbor
-                });
+                open_set.insert({priority, new_cost, neighbor});
             }
         }
     }   
